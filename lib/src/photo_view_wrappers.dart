@@ -34,11 +34,13 @@ class ImageWrapper extends StatefulWidget {
     required this.errorBuilder,
     required this.enablePanAlways,
     required this.strictScale,
+    required this.onImageFrame,
   }) : super(key: key);
 
   final ImageProvider imageProvider;
   final LoadingBuilder? loadingBuilder;
   final ImageErrorWidgetBuilderWithRetry? errorBuilder;
+  final Function(ImageInfo, bool)? onImageFrame;
   final BoxDecoration backgroundDecoration;
   final String? semanticLabel;
   final bool gaplessPlayback;
@@ -128,6 +130,7 @@ class _ImageWrapperState extends State<ImageWrapper> {
         _lastStack = null;
       };
       synchronousCall ? setupCB() : setState(setupCB);
+      widget.onImageFrame?.call(info, synchronousCall);
     }
 
     void handleError(dynamic error, StackTrace? stackTrace) {

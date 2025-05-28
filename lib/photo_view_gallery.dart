@@ -304,6 +304,7 @@ class _PhotoViewGalleryState extends State<PhotoViewGallery> {
             basePosition: pageOption.basePosition,
             disableGestures: pageOption.disableGestures,
             errorBuilder: pageOption.errorBuilder,
+            onImageFrame: pageOption.onImageFrame,
           );
 
     return ClipRect(
@@ -345,6 +346,7 @@ class PhotoViewGalleryPageOptions {
     this.filterQuality,
     this.disableGestures,
     this.errorBuilder,
+    this.onImageFrame,
   })  : child = null,
         childSize = null,
         assert(imageProvider != null);
@@ -369,7 +371,8 @@ class PhotoViewGalleryPageOptions {
     this.filterQuality,
     this.disableGestures,
   })  : errorBuilder = null,
-        imageProvider = null;
+        imageProvider = null,
+        onImageFrame = null;
 
   /// Mirror to [PhotoView.imageProvider]
   final ImageProvider? imageProvider;
@@ -430,4 +433,6 @@ class PhotoViewGalleryPageOptions {
 
   /// Mirror to [PhotoView.errorBuilder]
   final ImageErrorWidgetBuilderWithRetry? errorBuilder;
+
+  final Function(ImageInfo, bool)? onImageFrame;
 }

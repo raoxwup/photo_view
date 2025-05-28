@@ -9,7 +9,8 @@ import 'package:photo_view/photo_view.dart'
         PhotoViewImageTapDownCallback,
         PhotoViewImageTapUpCallback,
         PhotoViewImageScaleEndCallback,
-        ScaleStateCycle;
+        ScaleStateCycle,
+        ImageErrorWidgetBuilderWithRetry;
 
 import 'package:photo_view/src/controller/photo_view_controller.dart';
 import 'package:photo_view/src/controller/photo_view_scalestate_controller.dart';
@@ -428,5 +429,5 @@ class PhotoViewGalleryPageOptions {
   final FilterQuality? filterQuality;
 
   /// Mirror to [PhotoView.errorBuilder]
-  final ImageErrorWidgetBuilder? errorBuilder;
+  final ImageErrorWidgetBuilderWithRetry? errorBuilder;
 }

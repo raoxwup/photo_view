@@ -38,7 +38,7 @@ class ImageWrapper extends StatefulWidget {
 
   final ImageProvider imageProvider;
   final LoadingBuilder? loadingBuilder;
-  final ImageErrorWidgetBuilder? errorBuilder;
+  final ImageErrorWidgetBuilderWithRetry? errorBuilder;
   final BoxDecoration backgroundDecoration;
   final String? semanticLabel;
   final bool gaplessPlayback;
@@ -99,6 +99,7 @@ class _ImageWrapperState extends State<ImageWrapper> {
 
   // retrieve image from the provider
   void _resolveImage() {
+    _loading = true;
     final ImageStream newStream = widget.imageProvider.resolve(
       const ImageConfiguration(),
     );
@@ -221,7 +222,8 @@ class _ImageWrapperState extends State<ImageWrapper> {
     BuildContext context,
   ) {
     if (widget.errorBuilder != null) {
-      return widget.errorBuilder!(context, _lastException!, _lastStack);
+      return widget.errorBuilder!(
+          context, _lastException!, _lastStack, _resolveImage);
     }
     return PhotoViewDefaultError(
       decoration: widget.backgroundDecoration,

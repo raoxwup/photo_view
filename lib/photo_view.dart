@@ -315,7 +315,7 @@ class PhotoView extends StatefulWidget {
   final LoadingBuilder? loadingBuilder;
 
   /// Show loadFailedChild when the image failed to load
-  final ImageErrorWidgetBuilder? errorBuilder;
+  final ImageErrorWidgetBuilderWithRetry? errorBuilder;
 
   /// Changes the background behind image, defaults to `Colors.black`.
   final BoxDecoration? backgroundDecoration;
@@ -620,4 +620,11 @@ typedef PhotoViewImageScaleEndCallback = Function(
 typedef LoadingBuilder = Widget Function(
   BuildContext context,
   ImageChunkEvent? event,
+);
+
+typedef ImageErrorWidgetBuilderWithRetry = Widget Function(
+  BuildContext context,
+  Object error,
+  StackTrace? stackTrace,
+  VoidCallback retry,
 );

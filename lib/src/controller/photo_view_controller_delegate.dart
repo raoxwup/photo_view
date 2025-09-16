@@ -122,7 +122,7 @@ mixin PhotoViewControllerDelegate on State<PhotoViewCore> {
     scaleStateController.setInvisibly(newScaleState);
   }
 
-  void nextScaleState() {
+  void nextScaleState(Offset? _lastDoubleTapPos) {
     final PhotoViewScaleState scaleState = scaleStateController.scaleState;
     if (scaleState == PhotoViewScaleState.zoomedIn ||
         scaleState == PhotoViewScaleState.zoomedOut) {
@@ -149,6 +149,23 @@ mixin PhotoViewControllerDelegate on State<PhotoViewCore> {
     if (originalScale == nextScale) {
       return;
     }
+
+    if (_lastDoubleTapPos != null) {
+      final RenderBox box = context.findRenderObject() as RenderBox;
+      final Size size = box.size;
+      final Offset tapPos = _lastDoubleTapPos;
+
+      final Offset center = size.center(Offset.zero);
+      final double scaleFactor = nextScale / (controller.scale ?? 1.0);
+
+      final Offset delta = (center - tapPos) * scaleFactor;
+
+      controller.updateMultiple(
+        scale: nextScale,
+        position: controller.position + delta,
+      );
+    }
+
     scaleStateController.scaleState = nextScaleState;
   }
 

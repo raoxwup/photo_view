@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'photo_view_hit_corners.dart';
@@ -16,6 +17,8 @@ class PhotoViewGestureDetector extends StatelessWidget {
     this.behavior,
     this.onDoubleTapDown,
   }) : super(key: key);
+
+  static bool get _isCtrlPressed => HardwareKeyboard.instance.isControlPressed;
 
   final GestureTapDownCallback? onDoubleTapDown;
   final HitCornersDetector? hitDetector;
@@ -73,10 +76,36 @@ class PhotoViewGestureDetector extends StatelessWidget {
       },
     );
 
-    return RawGestureDetector(
-      behavior: behavior,
-      child: child,
-      gestures: gestures,
+    return Listener(
+      onPointerSignal: (event) {
+        if (event is PointerScrollEvent && _isCtrlPressed) {
+          final double scaleFactor = 1.0 - (event.scrollDelta.dy / 200.0);
+
+          onScaleStart?.call(ScaleStartDetails(
+            focalPoint: event.position,
+            localFocalPoint: event.position,
+            pointerCount: 2,
+          ));
+
+          onScaleUpdate?.call(ScaleUpdateDetails(
+            focalPoint: event.position,
+            localFocalPoint: event.position,
+            focalPointDelta: event.scrollDelta,
+            scale: scaleFactor,
+            pointerCount: 2,
+          ));
+
+          onScaleEnd?.call(ScaleEndDetails(
+            pointerCount: 2,
+            velocity: Velocity.zero,
+          ));
+        }
+      },
+      child: RawGestureDetector(
+        behavior: behavior,
+        child: child,
+        gestures: gestures,
+      ),
     );
   }
 }

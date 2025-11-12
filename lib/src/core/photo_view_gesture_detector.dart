@@ -1,10 +1,12 @@
+import 'dart:async';
+import 'dart:math' show exp;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'photo_view_hit_corners.dart';
 
-class PhotoViewGestureDetector extends StatelessWidget {
+class PhotoViewGestureDetector extends StatefulWidget {
   const PhotoViewGestureDetector({
     Key? key,
     this.hitDetector,
@@ -35,6 +37,96 @@ class PhotoViewGestureDetector extends StatelessWidget {
   final HitTestBehavior? behavior;
 
   @override
+  State<PhotoViewGestureDetector> createState() =>
+      _PhotoViewGestureDetectorState();
+}
+
+class _PhotoViewGestureDetectorState extends State<PhotoViewGestureDetector> {
+  // Debounce timer to group wheel events into a single synthetic scale gesture.
+  Timer? _endTimer;
+
+  // Whether a synthetic Ctrl-wheel zoom gesture is currently active.
+  bool _isCtrlZooming = false;
+
+  // Accumulated scale factor since the start of the synthetic gesture.
+  // Scale in ScaleUpdateDetails represents scale since onScaleStart (1.0 initial).
+  double _accumulatedScale = 1.0;
+
+  // Configuration:
+  static const double _sensitivity = 200.0;
+  static const Duration _endDelay = Duration(milliseconds: 120);
+
+  // Clamp bounds: lower bound > 0 to avoid Flutter's `scale >= 0.0` assertion.
+  static const double _minScaleClamp = 0.01;
+  static const double _maxScaleClamp = double.infinity;
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) {
+      return;
+    }
+
+    // If Ctrl isn't pressed, and we had an active synthetic gesture, end it.
+    if (!PhotoViewGestureDetector._isCtrlPressed) {
+      if (_isCtrlZooming) {
+        _endSyntheticGesture();
+      }
+      return;
+    }
+
+    // Map scroll delta to a positive multiplicative factor using exp.
+    // Negative dy (wheel up) -> factor > 1 (zoom in).
+    // Positive dy (wheel down) -> factor < 1 (zoom out).
+    final double delta = event.scrollDelta.dy;
+    final double factor = exp(-delta / _sensitivity);
+
+    if (!_isCtrlZooming) {
+      _isCtrlZooming = true;
+      _accumulatedScale = 1.0;
+      widget.onScaleStart?.call(ScaleStartDetails(
+        focalPoint: event.position,
+        localFocalPoint: event.position,
+        pointerCount: 2,
+      ));
+    }
+
+    // Accumulate and clamp to avoid zero/negative values.
+    _accumulatedScale =
+        (_accumulatedScale * factor).clamp(_minScaleClamp, _maxScaleClamp);
+
+    widget.onScaleUpdate?.call(ScaleUpdateDetails(
+      focalPoint: event.position,
+      localFocalPoint: event.position,
+      focalPointDelta: event.scrollDelta,
+      scale: _accumulatedScale,
+      pointerCount: 2,
+    ));
+
+    // Reset debounce timer for end event.
+    _endTimer?.cancel();
+    _endTimer = Timer(_endDelay, _endSyntheticGesture);
+  }
+
+  void _endSyntheticGesture() {
+    if (!_isCtrlZooming) {
+      return;
+    }
+    _isCtrlZooming = false;
+    _endTimer?.cancel();
+    _endTimer = null;
+
+    widget.onScaleEnd?.call(ScaleEndDetails(
+      pointerCount: 2,
+      velocity: Velocity.zero,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _endTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scope = PhotoViewGestureDetectorScope.of(context);
 
@@ -43,14 +135,14 @@ class PhotoViewGestureDetector extends StatelessWidget {
     final Map<Type, GestureRecognizerFactory> gestures =
         <Type, GestureRecognizerFactory>{};
 
-    if (onTapDown != null || onTapUp != null) {
+    if (widget.onTapDown != null || widget.onTapUp != null) {
       gestures[TapGestureRecognizer] =
           GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
         () => TapGestureRecognizer(debugOwner: this),
         (TapGestureRecognizer instance) {
           instance
-            ..onTapDown = onTapDown
-            ..onTapUp = onTapUp;
+            ..onTapDown = widget.onTapDown
+            ..onTapUp = widget.onTapUp;
         },
       );
     }
@@ -59,51 +151,30 @@ class PhotoViewGestureDetector extends StatelessWidget {
         GestureRecognizerFactoryWithHandlers<DoubleTapGestureRecognizer>(
       () => DoubleTapGestureRecognizer(debugOwner: this),
       (DoubleTapGestureRecognizer instance) {
-        instance..onDoubleTapDown = onDoubleTapDown;
+        instance..onDoubleTapDown = widget.onDoubleTapDown;
       },
     );
 
     gestures[PhotoViewGestureRecognizer] =
         GestureRecognizerFactoryWithHandlers<PhotoViewGestureRecognizer>(
       () => PhotoViewGestureRecognizer(
-          hitDetector: hitDetector, debugOwner: this, validateAxis: axis),
+          hitDetector: widget.hitDetector,
+          debugOwner: this,
+          validateAxis: axis),
       (PhotoViewGestureRecognizer instance) {
         instance
           ..dragStartBehavior = DragStartBehavior.start
-          ..onStart = onScaleStart
-          ..onUpdate = onScaleUpdate
-          ..onEnd = onScaleEnd;
+          ..onStart = widget.onScaleStart
+          ..onUpdate = widget.onScaleUpdate
+          ..onEnd = widget.onScaleEnd;
       },
     );
 
     return Listener(
-      onPointerSignal: (event) {
-        if (event is PointerScrollEvent && _isCtrlPressed) {
-          final double scaleFactor = 1.0 - (event.scrollDelta.dy / 200.0);
-
-          onScaleStart?.call(ScaleStartDetails(
-            focalPoint: event.position,
-            localFocalPoint: event.position,
-            pointerCount: 2,
-          ));
-
-          onScaleUpdate?.call(ScaleUpdateDetails(
-            focalPoint: event.position,
-            localFocalPoint: event.position,
-            focalPointDelta: event.scrollDelta,
-            scale: scaleFactor,
-            pointerCount: 2,
-          ));
-
-          onScaleEnd?.call(ScaleEndDetails(
-            pointerCount: 2,
-            velocity: Velocity.zero,
-          ));
-        }
-      },
+      onPointerSignal: _handlePointerSignal,
       child: RawGestureDetector(
-        behavior: behavior,
-        child: child,
+        behavior: widget.behavior,
+        child: widget.child,
         gestures: gestures,
       ),
     );

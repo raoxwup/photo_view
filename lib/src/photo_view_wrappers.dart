@@ -108,6 +108,21 @@ class _ImageWrapperState extends State<ImageWrapper> {
     _updateSourceStream(newStream);
   }
 
+  // retry to retrieve image from the provider
+  void _retryImage() async {
+    setState(() {
+      _loading = true;
+      _lastException = null;
+      _lastStack = null;
+    });
+    final provider = widget.imageProvider;
+    try {
+      await provider.evict();
+    } catch (_) {}
+    final newStream = provider.resolve(createLocalImageConfiguration(context));
+    _updateSourceStream(newStream);
+  }
+
   ImageStreamListener _getOrCreateListener() {
     void handleImageChunk(ImageChunkEvent event) {
       setState(() {
@@ -226,7 +241,7 @@ class _ImageWrapperState extends State<ImageWrapper> {
   ) {
     if (widget.errorBuilder != null) {
       return widget.errorBuilder!(
-          context, _lastException!, _lastStack, _resolveImage);
+          context, _lastException!, _lastStack, _retryImage);
     }
     return PhotoViewDefaultError(
       decoration: widget.backgroundDecoration,

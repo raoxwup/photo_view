@@ -417,7 +417,9 @@ class PhotoView extends StatefulWidget {
   /// Enable strictScale will restrict user scale gesture to the maxScale and minScale values.
   final bool? strictScale;
 
-  final Function(ImageInfo, bool)? onImageFrame;
+  /// Called for every image frame decoded, e.g. to know when the image is
+  /// actually displayed. Mirror to [ImageStreamListener.onImage].
+  final ImageFrameCallback? onImageFrame;
 
   bool get _isCustomChild {
     return child != null;
@@ -627,9 +629,19 @@ typedef LoadingBuilder = Widget Function(
   ImageChunkEvent? event,
 );
 
+/// A type definition for a callback that builds an error widget and receives a
+/// [retry] callback to re-attempt loading the image.
 typedef ImageErrorWidgetBuilderWithRetry = Widget Function(
   BuildContext context,
   Object error,
   StackTrace? stackTrace,
   VoidCallback retry,
+);
+
+/// Called every time a new image frame becomes available, mirroring
+/// [ImageStreamListener.onImage]. [synchronousCall] is `true` when the frame
+/// was already available at the moment the listener was registered.
+typedef ImageFrameCallback = void Function(
+  ImageInfo imageInfo,
+  bool synchronousCall,
 );

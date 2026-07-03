@@ -10,7 +10,8 @@ import 'package:photo_view/photo_view.dart'
         PhotoViewImageTapUpCallback,
         PhotoViewImageScaleEndCallback,
         ScaleStateCycle,
-        ImageErrorWidgetBuilderWithRetry;
+        ImageErrorWidgetBuilderWithRetry,
+        ImageFrameCallback;
 
 import 'package:photo_view/src/controller/photo_view_controller.dart';
 import 'package:photo_view/src/controller/photo_view_scalestate_controller.dart';
@@ -434,5 +435,6 @@ class PhotoViewGalleryPageOptions {
   /// Mirror to [PhotoView.errorBuilder]
   final ImageErrorWidgetBuilderWithRetry? errorBuilder;
 
-  final Function(ImageInfo, bool)? onImageFrame;
+  /// Mirror to [PhotoView.onImageFrame]
+  final ImageFrameCallback? onImageFrame;
 }

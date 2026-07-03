@@ -40,7 +40,7 @@ class ImageWrapper extends StatefulWidget {
   final ImageProvider imageProvider;
   final LoadingBuilder? loadingBuilder;
   final ImageErrorWidgetBuilderWithRetry? errorBuilder;
-  final Function(ImageInfo, bool)? onImageFrame;
+  final ImageFrameCallback? onImageFrame;
   final BoxDecoration backgroundDecoration;
   final String? semanticLabel;
   final bool gaplessPlayback;
@@ -103,7 +103,7 @@ class _ImageWrapperState extends State<ImageWrapper> {
   void _resolveImage() {
     _loading = true;
     final ImageStream newStream = widget.imageProvider.resolve(
-      const ImageConfiguration(),
+      createLocalImageConfiguration(context),
     );
     _updateSourceStream(newStream);
   }
@@ -119,6 +119,10 @@ class _ImageWrapperState extends State<ImageWrapper> {
     try {
       await provider.evict();
     } catch (_) {}
+    // evict() is async: the widget may have been disposed while awaiting.
+    if (!mounted) {
+      return;
+    }
     final newStream = provider.resolve(createLocalImageConfiguration(context));
     _updateSourceStream(newStream);
   }

@@ -4,10 +4,16 @@ import 'package:photo_view/src/controller/photo_view_controller_delegate.dart'
     show PhotoViewControllerDelegate;
 
 mixin HitCornersDetector on PhotoViewControllerDelegate {
+  // Tolerance to absorb floating-point error from `childSize * scale`, so that
+  // an image sized virtually equal to the viewport is still treated as fitting.
+  static const double _hitEpsilon = 0.1;
+
+  bool _fitsWithin(double screen, double child) => screen - child >= -_hitEpsilon;
+
   HitCorners _hitCornersX() {
     final double childWidth = scaleBoundaries.childSize.width * scale;
     final double screenWidth = scaleBoundaries.outerSize.width;
-    if (screenWidth - childWidth >= -0.1) {
+    if (_fitsWithin(screenWidth, childWidth)) {
       return const HitCorners(true, true);
     }
     final x = -position.dx;
@@ -18,7 +24,7 @@ mixin HitCornersDetector on PhotoViewControllerDelegate {
   HitCorners _hitCornersY() {
     final double childHeight = scaleBoundaries.childSize.height * scale;
     final double screenHeight = scaleBoundaries.outerSize.height;
-    if (screenHeight >= childHeight) {
+    if (_fitsWithin(screenHeight, childHeight)) {
       return const HitCorners(true, true);
     }
     final y = -position.dy;
